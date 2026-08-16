@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/styles">
+        <file>styles.qss</file>
+    </qresource>
+    <qresource prefix="/scripts">
+        <file>scripts/check_tethering.ps1</file>
+        <file>scripts/start_tethering.ps1</file>
+        <file>scripts/stop_tethering.ps1</file>
+        <file>scripts/tethering_state.ps1</file>
+        <file>scripts/hotspot_ip.ps1</file>
+    </qresource>
+</RCC>

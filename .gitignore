@@ -1,0 +1,5 @@
+build/
+.qt/
+*.user
+CMakeLists.txt.user
+*.autosave
