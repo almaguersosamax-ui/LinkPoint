@@ -60,6 +60,7 @@ bool HotspotController::extractScripts()
     };
 
     bool ok = true;
+    QStringList missing;
     for (const QString &name : scripts) {
         QFile res(QStringLiteral(":/scripts/") + name);
         const QString dest = m_scriptDir + QLatin1Char('/') + name;
@@ -67,11 +68,13 @@ bool HotspotController::extractScripts()
             QFile::remove(dest);
         if (!res.open(QIODevice::ReadOnly)) {
             ok = false;
+            missing << QStringLiteral(":/scripts/") + name;
             continue;
         }
         QFile out(dest);
         if (!out.open(QIODevice::WriteOnly)) {
             ok = false;
+            missing << dest;
             res.close();
             continue;
         }
@@ -79,6 +82,8 @@ bool HotspotController::extractScripts()
         out.close();
         res.close();
     }
+    if (!missing.isEmpty())
+        emit logMessage(tr("Recursos no disponibles: %1").arg(missing.join(QStringLiteral(", "))));
     return ok;
 }
 
