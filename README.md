@@ -67,6 +67,22 @@ Al abrir la app se detecta la capacidad del adaptador:
 
 Si ambas fallan, el adaptador no soporta punto de acceso software (raro en portátiles modernos; revisa `netsh wlan show drivers`).
 
+## Diagnóstico "Sin motor disponible"
+
+La app reporta la razón exacta de cada motor en el registro:
+
+- `Hosted Network (netsh): No` — el driver del adaptador no expone la red hospedada clásica (común en Windows 11).
+- `Mobile Hotspot (WinRT): …` — uno de estos motivos:
+  - `sin perfil de red activo`: la PC no tiene ninguna conexión; conéctala a una red (Ethernet o WiFi) y reintenta.
+  - `hardware sin soporte de punto de acceso`: el adaptador no soporta SoftAP/WiFi Direct; comprueba en *Configuración → Red e Internet → Punto de acceso móvil* si el interruptor está disponible, actualiza el driver (Intel/Realtek) o usa un adaptador USB WiFi compatible.
+  - `deshabilitado por directiva` / `no disponible en esta edición` / `bloqueado por el operador`: limitación de política o sistema.
+
+Puedes verificar manualmente con:
+
+```bat
+netsh wlan show drivers
+```
+
 ## Estructura
 
 ```

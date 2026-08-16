@@ -68,6 +68,7 @@ private:
     bool startPowerShellScript(const QString &scriptName);
     void parseHostedSupport(const QByteArray &output);
     void parseHostedStatus(const QByteArray &output);
+    QString tetheringReasonText(const QString &capability) const;
     QString scriptPath(const QString &scriptName) const;
     bool extractScripts();
     static bool containsAny(const QByteArray &text, std::initializer_list<const char *> needles);
@@ -82,4 +83,7 @@ private:
     QString m_detail;
     bool m_hostedSupported = false;
     bool m_tetheringAvailable = false;
+    QString m_adapterName;
+    QString m_hostedText;
+    QString m_tetheringReason;
 };

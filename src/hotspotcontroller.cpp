@@ -223,17 +223,47 @@ void HotspotController::detectIp()
 void HotspotController::parseHostedSupport(const QByteArray &output)
 {
     m_hostedSupported = false;
+    m_adapterName.clear();
+    m_hostedText.clear();
     const QList<QByteArray> lines = output.split('\n');
     for (const QByteArray &line : lines) {
-        if (containsAny(line, { "Hosted network support", "Soporte de red hospedada", "Red hospedada" })) {
-            const int idx = line.indexOf(':');
-            if (idx < 0)
-                continue;
-            const QByteArray value = line.mid(idx + 1).trimmed().toLower();
+        const int idx = line.indexOf(':');
+        if (idx < 0)
+            continue;
+        const QByteArray key = line.left(idx).trimmed().toLower();
+        const QByteArray rawValue = line.mid(idx + 1).trimmed();
+        const QByteArray value = rawValue.toLower();
+
+        if (containsAny(key, { "description", "descripción", "descripcion" })) {
+            m_adapterName = QString::fromUtf8(rawValue);
+        } else if (containsAny(key, { "hosted network support", "soporte de red hospedada", "red hospedada" })) {
+            m_hostedText = QString::fromUtf8(rawValue);
             m_hostedSupported = value.startsWith("yes") || value.startsWith("si") || value.startsWith("sí");
-            break;
         }
     }
+}
+
+QString HotspotController::tetheringReasonText(const QString &capability) const
+{
+    if (capability == QStringLiteral("Enabled"))
+        return tr("disponible");
+    if (capability == QStringLiteral("NoConnectionProfile"))
+        return tr("sin perfil de red activo (conecta la PC a cualquier red y reintenta)");
+    if (capability == QStringLiteral("DisabledByGroupPolicy"))
+        return tr("deshabilitado por directiva de grupo");
+    if (capability == QStringLiteral("DisabledByHardwareLimitation"))
+        return tr("hardware sin soporte de punto de acceso");
+    if (capability == QStringLiteral("DisabledByOperator"))
+        return tr("bloqueado por el operador");
+    if (capability == QStringLiteral("DisabledBySku"))
+        return tr("no disponible en esta edición de Windows");
+    if (capability == QStringLiteral("DisabledBySystemCapability"))
+        return tr("no disponible en este sistema");
+    if (capability == QStringLiteral("ERROR"))
+        return tr("no se pudo consultar (ERROR)");
+    if (capability.startsWith(QStringLiteral("DisabledByNo")))
+        return tr("requiere soporte adicional del adaptador");
+    return capability.isEmpty() ? tr("no reportado") : capability;
 }
 
 void HotspotController::parseHostedStatus(const QByteArray &output)
@@ -267,6 +297,10 @@ void HotspotController::onProcessFinished()
     switch (m_task) {
     case Task::DetectHosted:
         parseHostedSupport(all);
+        emit logMessage(tr("Adaptador WiFi: %1")
+            .arg(m_adapterName.isEmpty() ? tr("no detectado") : m_adapterName));
+        emit logMessage(tr("Hosted Network (netsh): %1")
+            .arg(m_hostedText.isEmpty() ? tr("no reportado") : m_hostedText));
         if (extractScripts()) {
             m_task = Task::DetectTethering;
             startPowerShellScript(QStringLiteral("check_tethering.ps1"));
@@ -281,8 +315,16 @@ void HotspotController::onProcessFinished()
         }
         break;
 
-    case Task::DetectTethering:
-        m_tetheringAvailable = all.contains("CAPABILITY=Enabled");
+    case Task::DetectTethering: {
+        static const QRegularExpression capRe(QStringLiteral("CAPABILITY=(.+)"));
+        const QRegularExpressionMatch capMatch = capRe.match(QString::fromUtf8(all).trimmed());
+        m_tetheringReason = capMatch.hasMatch()
+            ? capMatch.captured(1).trimmed()
+            : (all.contains("ERROR=") ? QStringLiteral("ERROR")
+                                      : QStringLiteral("NoConnectionProfile"));
+        m_tetheringAvailable = m_tetheringReason == QStringLiteral("Enabled");
+        emit logMessage(tr("Mobile Hotspot (WinRT): %1").arg(tetheringReasonText(m_tetheringReason)));
+
         if (m_tetheringAvailable && m_hostedSupported)
             m_engine = Engine::HostedNetwork;
         else if (m_tetheringAvailable)
@@ -299,12 +341,15 @@ void HotspotController::onProcessFinished()
             else if (m_engine == Engine::MobileHotspot)
                 detail = tr("Mobile Hotspot disponible");
             else
-                detail = tr("Ningún motor disponible: el adaptador no soporta punto de acceso.");
+                detail = tr("Sin motor disponible: Hosted Network %1 · Mobile Hotspot %2")
+                    .arg(m_hostedText.isEmpty() ? tr("no reportado") : m_hostedText,
+                         tetheringReasonText(m_tetheringReason));
             emit engineDetected(m_engine, detail);
             if (m_engine == Engine::Unknown)
                 setState(State::Error, detail);
         }
         break;
+    }
 
     case Task::StartHostedSet:
         if (m_process->exitCode() == 0) {

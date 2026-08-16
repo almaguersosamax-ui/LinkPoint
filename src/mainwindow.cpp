@@ -337,7 +337,7 @@ void MainWindow::buildUi()
     rdpButton->setObjectName(QStringLiteral("ghostBtn"));
     rdpButton->setCursor(Qt::PointingHandCursor);
     connect(rdpButton, &QPushButton::clicked, this, &MainWindow::onLaunchRdp);
-    auto *version = new QLabel(tr("v1.0.0"));
+    auto *version = new QLabel(tr("v1.0.1"));
     version->setObjectName(QStringLiteral("hintLabel"));
     footer->addWidget(rdpButton);
     footer->addStretch();
