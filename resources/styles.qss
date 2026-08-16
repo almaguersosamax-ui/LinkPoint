@@ -62,6 +62,15 @@ QLabel#engineBadge {
     font-size: 10px;
     font-weight: 600;
 }
+QFrame#warningBanner {
+    background-color: #2B2111;
+    border: 1px solid #7C5A1E;
+    border-radius: 10px;
+}
+QLabel#bannerText {
+    color: #FDE68A;
+    font-size: 11px;
+}
 QLineEdit, QSpinBox {
     background-color: #0F141D;
     border: 1px solid #253041;

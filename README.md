@@ -12,7 +12,7 @@ Aplicación de escritorio para **Windows 10/11** escrita en **Qt 6 + C++** (kit 
 - IP del equipo y dirección URL con botones de copiado.
 - Botón de **Escritorio remoto (RDP)** hacia la propia PC.
 - Los datos (SSID, contraseña, puerto, carpeta) se recuerdan entre sesiones.
-- Se ejecuta como administrador (manifest UAC) porque el arranque del AP requiere privilegios.
+- **Detección de permisos**: si la app no se ejecuta como administrador, muestra una UI con botón para reiniciarse elevada (UAC). El arranque del AP requiere privilegios.
 
 ## Requisitos
 
@@ -27,7 +27,9 @@ Aplicación de escritorio para **Windows 10/11** escrita en **Qt 6 + C++** (kit 
 1. Abre Qt Creator.
 2. `File → Open File or Project…` → selecciona `CMakeLists.txt`.
 3. Elige el kit **MinGW 64-bit** (o MSVC 64-bit si lo prefieres).
-4. Compila y ejecuta (`Ctrl+R`). La primera vez Windows pedirá permisos de administrador (UAC).
+4. Compila y ejecuta (`Ctrl+R`). Si no se está ejecutando con permisos de administrador, la app muestra un aviso con el botón **Reiniciar como administrador** (aparecerá la pantalla UAC de Windows).
+
+> Si Qt Creator no puede lanzar el `.exe` con el error "insufficient permissions", abre **Projects → Run** y marca la casilla **Run as administrator** (o ejecuta el `.exe` desde el Explorador con clic derecho → "Ejecutar como administrador").
 
 ### Opción B — Línea de comandos
 
@@ -71,13 +73,14 @@ Si ambas fallan, el adaptador no soporta punto de acceso software (raro en port�
 LinkPoint/
 ├── CMakeLists.txt
 ├── resources/
-│   ├── app.manifest          # Ejecución como administrador + DPI
+│   ├── app.manifest          # Elevación bajo demanda + DPI
 │   ├── app.rc
 │   ├── styles.qss            # Tema oscuro
 │   ├── resources.qrc
 │   └── scripts/*.ps1         # Puente PowerShell → API WinRT
 └── src/
-    ├── main.cpp
+    ├── main.cpp              # Detecta permisos y pide elevación
+    ├── elevation.*           # Chequeo de token y relanzado como administrador
     ├── mainwindow.*          # UI
     ├── hotspotcontroller.*   # Arranque/parada/detección del AP
     └── httpserver.*          # Servidor HTTP de archivos

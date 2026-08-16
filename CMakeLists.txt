@@ -19,6 +19,7 @@ endif()
 
 qt_add_executable(LinkPoint WIN32
     src/main.cpp
+    src/elevation.h
     src/mainwindow.cpp
     src/mainwindow.h
     src/hotspotcontroller.cpp
@@ -36,6 +37,10 @@ if(MSVC)
     target_compile_options(LinkPoint PRIVATE /W4)
 else()
     target_compile_options(LinkPoint PRIVATE -Wall -Wextra)
+endif()
+
+if(WIN32)
+    target_link_libraries(LinkPoint PRIVATE advapi32 shell32)
 endif()
 
 install(TARGETS LinkPoint

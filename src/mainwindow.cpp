@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 
+#include "elevation.h"
+
 #include <QApplication>
 #include <QClipboard>
 #include <QDesktopServices>
@@ -123,6 +125,28 @@ void MainWindow::buildUi()
     m_engineLabel->setAlignment(Qt::AlignCenter);
     header->addWidget(m_engineLabel);
     root->addLayout(header);
+
+    if (!isElevated()) {
+        auto *banner = new QFrame();
+        banner->setObjectName(QStringLiteral("warningBanner"));
+        auto *bannerLayout = new QHBoxLayout(banner);
+        bannerLayout->setContentsMargins(10, 8, 10, 8);
+        bannerLayout->setSpacing(8);
+        auto *bannerText = new QLabel(
+            tr("Sin permisos de administrador: el hotspot no podrá iniciar."));
+        bannerText->setObjectName(QStringLiteral("bannerText"));
+        bannerText->setWordWrap(true);
+        auto *elevateButton = new QPushButton(tr("Reiniciar como administrador"));
+        elevateButton->setObjectName(QStringLiteral("ghostBtn"));
+        elevateButton->setCursor(Qt::PointingHandCursor);
+        connect(elevateButton, &QPushButton::clicked, this, []() {
+            if (relaunchAsAdmin())
+                qApp->quit();
+        });
+        bannerLayout->addWidget(bannerText, 1);
+        bannerLayout->addWidget(elevateButton);
+        root->insertWidget(1, banner);
+    }
 
     // Card 1 — Punto de acceso
     auto *card1 = new QFrame();
@@ -435,6 +459,11 @@ void MainWindow::updateServerUi()
 
 void MainWindow::onToggleHotspot()
 {
+    if (!isElevated()) {
+        log(tr("Permisos insuficientes: reinicia como administrador desde el aviso superior."));
+        return;
+    }
+
     using S = HotspotController::State;
     const S state = m_controller.state();
     if (state == S::On || state == S::Starting || state == S::Stopping) {

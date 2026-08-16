@@ -5,6 +5,7 @@
 #include <QString>
 #include <QTimer>
 
+#include "elevation.h"
 #include "hotspotcontroller.h"
 #include "httpserver.h"
 
