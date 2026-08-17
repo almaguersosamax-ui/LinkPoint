@@ -223,7 +223,8 @@ void HotspotController::detectIp()
 void HotspotController::parseHostedSupport(const QByteArray &output)
 {
     m_hostedSupported = false;
-    m_adapterName.clear();
+    m_interfaceName.clear();
+    m_driverName.clear();
     m_hostedText.clear();
     const QList<QByteArray> lines = output.split('\n');
     for (const QByteArray &line : lines) {
@@ -234,8 +235,10 @@ void HotspotController::parseHostedSupport(const QByteArray &output)
         const QByteArray rawValue = line.mid(idx + 1).trimmed();
         const QByteArray value = rawValue.toLower();
 
-        if (containsAny(key, { "description", "descripción", "descripcion" })) {
-            m_adapterName = QString::fromUtf8(rawValue);
+        if (containsAny(key, { "nombre de interfaz", "name of interface" })) {
+            m_interfaceName = QString::fromUtf8(rawValue);
+        } else if (containsAny(key, { "controlador", "driver" })) {
+            m_driverName = QString::fromUtf8(rawValue);
         } else if (containsAny(key, { "hosted network support", "soporte de red hospedada", "red hospedada" })) {
             m_hostedText = QString::fromUtf8(rawValue);
             m_hostedSupported = value.startsWith("yes") || value.startsWith("si") || value.startsWith("sí");
@@ -297,8 +300,15 @@ void HotspotController::onProcessFinished()
     switch (m_task) {
     case Task::DetectHosted:
         parseHostedSupport(all);
+        {
+            const QString adapter = m_interfaceName.isEmpty()
+                ? m_driverName
+                : (m_driverName.isEmpty()
+                    ? m_interfaceName
+                    : m_interfaceName + QStringLiteral(" — ") + m_driverName);
         emit logMessage(tr("Adaptador WiFi: %1")
-            .arg(m_adapterName.isEmpty() ? tr("no detectado") : m_adapterName));
+            .arg(adapter.isEmpty() ? tr("no detectado") : adapter));
+        }
         emit logMessage(tr("Hosted Network (netsh): %1")
             .arg(m_hostedText.isEmpty() ? tr("no reportado") : m_hostedText));
         if (extractScripts()) {
@@ -316,8 +326,19 @@ void HotspotController::onProcessFinished()
         break;
 
     case Task::DetectTethering: {
+        const QString outputText = QString::fromUtf8(all);
+        const QStringList diagLines = outputText.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+        for (const QString &line : diagLines) {
+            if (line.startsWith(QStringLiteral("INTERNET="))
+                || line.startsWith(QStringLiteral("PROFILES="))
+                || line.startsWith(QStringLiteral("PROFILE="))
+                || line.startsWith(QStringLiteral("PROFILE_ERROR="))
+                || line.startsWith(QStringLiteral("ERROR="))) {
+                emit logMessage(QStringLiteral("  • ") + line);
+            }
+        }
         static const QRegularExpression capRe(QStringLiteral("CAPABILITY=(.+)"));
-        const QRegularExpressionMatch capMatch = capRe.match(QString::fromUtf8(all).trimmed());
+        const QRegularExpressionMatch capMatch = capRe.match(outputText.trimmed());
         m_tetheringReason = capMatch.hasMatch()
             ? capMatch.captured(1).trimmed()
             : (all.contains("ERROR=") ? QStringLiteral("ERROR")

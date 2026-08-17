@@ -83,7 +83,8 @@ private:
     QString m_detail;
     bool m_hostedSupported = false;
     bool m_tetheringAvailable = false;
-    QString m_adapterName;
+    QString m_interfaceName;
+    QString m_driverName;
     QString m_hostedText;
     QString m_tetheringReason;
 };

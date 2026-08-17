@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("LinkPoint"));
     QApplication::setOrganizationName(QStringLiteral("LinkPoint"));
-    QApplication::setApplicationVersion(QStringLiteral("1.0.1"));
+    QApplication::setApplicationVersion(QStringLiteral("1.0.2"));
 
     QFont font(QStringLiteral("Segoe UI"), 10);
     font.setStyleHint(QFont::System);
